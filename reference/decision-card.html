@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Как выбрать estimand — памятка</title><link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="../assets/course.css"><script defer src="../assets/vendor/katex/katex.min.js"></script>
+<script defer src="../assets/vendor/katex/contrib/auto-render.min.js"></script>
+<script defer src="../assets/math.js"></script>
+</head>
+<body class="reference-card"><div class="shell narrow">
+<header class="topbar"><a href="../index.html">← Карта курса</a><nav aria-label="Навигация"><a href="../lessons/0001-estimand-before-estimator.html">Урок 01</a><a href="glossary.html">Glossary</a></nav></header>
+<main><div class="hero"><p class="eyebrow">Reference / карточка 01</p><h1>Сначала estimand.</h1><p class="lede">Вопрос → population → величина → estimator → uncertainty.</p></div>
+<div class="table-wrap"><table><thead><tr><th>Практический вопрос</th><th>Подходящий target</th><th>Что не следует из него</th></tr></thead><tbody>
+<tr><td>Expected total последовательного service time</td><td>E[T], при конечном expectation</td><td>Wall-clock время concurrent system</td></tr>
+<tr><td>Середина latency distribution</td><td>Median = Q(0.5)</td><td>Ожидаемые суммарные затраты</td></tr>
+<tr><td>Нарушения порога c</td><td>P(T &gt; c)</td><td>Насколько сильно порог превышен</td></tr>
+<tr><td>Уровень, ниже которого лежит доля p</td><td>Q(p)</td><td>Точный quantile по маленькому sample</td></tr>
+</tbody></table></div>
+<section><h2>До выбора метода</h2><ol><li><strong>Назови решение.</strong> Что изменится после анализа?</li><li><strong>Назови population и единицу наблюдения.</strong> Запрос, пользователь, session или benchmark run?</li><li><strong>Запиши target словами и формулой.</strong> Для A/B зафиксируй направление разницы, например μ<sub>B</sub> − μ<sub>A</sub>.</li><li><strong>Определи смысл tail.</strong> Реальное поведение или measurement contamination? Что подтверждает ответ?</li><li><strong>Только затем выбирай estimator и uncertainty procedure.</strong> Их assumptions должны соответствовать design.</li></ol></section>
+<div class="note"><p>Sample median вместо sample mean обычно меняет estimand. Robust mean estimation — отдельная задача. Nonparametric метод может быть чувствителен к outliers.</p></div>
+<section><h2>Контрпример, который стоит помнить</h2><p>A: всегда 10 ms. B: 99% по 9 ms и 1% по 1000 ms.</p><div class="formula">\[\begin{aligned}\operatorname{Median}(B)&amp;=9\;\mathrm{ms}&lt;10\;\mathrm{ms},\\\operatorname{Mean}(B)&amp;=18.91\;\mathrm{ms}&gt;10\;\mathrm{ms}.\end{aligned}\]</div><p>Оба сравнения корректны. Решение зависит от цели, uncertainty и operational constraints.</p><p class="source">Собственная учебная модель из <a href="../lessons/0001-estimand-before-estimator.html#experiment">урока 0001</a>. Для определений location measures: <a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda351.htm">NIST</a>.</p></section>
+</main><footer class="footer">Печатная памятка · Ctrl/Cmd + P · <a href="glossary.html">Glossary</a> · <a href="../lessons/0001-estimand-before-estimator.html">К уроку</a></footer>
+</div></body></html>

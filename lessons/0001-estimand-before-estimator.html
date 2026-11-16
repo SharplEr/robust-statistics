@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Урок 1: выбрать estimand для performance и A/B testing. Интерактивная модель редких задержек, доказательство и упражнения.">
+  <title>01 · Что значит «быстрее»? — Robust statistics</title>
+  <link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="../assets/course.css">
+  <script defer src="../assets/statistics.js"></script>
+  <script defer src="../assets/lesson.js"></script>
+  <script defer src="../assets/latency-lab.js"></script>
+<script defer src="../assets/vendor/katex/katex.min.js"></script>
+<script defer src="../assets/vendor/katex/contrib/auto-render.min.js"></script>
+<script defer src="../assets/math.js"></script>
+</head>
+<body data-lesson="0001">
+<a class="skip-link" href="#main">К содержанию урока</a>
+<div class="shell narrow">
+  <header class="topbar"><a href="../index.html">← Карта курса</a><nav aria-label="Навигация"><a href="../reference/glossary.html">Glossary</a><a href="../reference/decision-card.html">Памятка</a></nav></header>
+  <main id="main">
+    <div class="hero">
+      <p class="eyebrow">Урок 01 · Estimand before estimator</p>
+      <h1>Что значит<br><span class="accent">«быстрее»?</span></h1>
+      <p class="lede">Одна и та же оптимизация может ускорить большинство запросов и увеличить суммарное время работы. Научимся выбирать величину, которая отвечает на нужный вопрос.</p>
+      <div class="meta"><span>25 минут с упражнениями</span><span>Prerequisite: среднее и вероятность</span></div>
+    </div>
+    <nav class="toc" aria-label="Разделы урока"><a href="#question">Вопрос · 3 мин</a><a href="#target">Понятия · 4 мин</a><a href="#experiment">Эксперимент · 7 мин</a><a href="#proof">Доказательство · 4 мин</a><a href="#practice">Практика · 5 мин</a><a href="#transfer">Перенос · 2 мин</a></nav>
+    <noscript>JavaScript отключён: объяснения, формулы, Python-пример и ответы в раскрываемых блоках доступны. Для слайдеров и автоматической проверки включи JavaScript.</noscript>
+
+    <section id="question">
+      <div class="section-head"><span class="number">01</span><h2>Оптимизация или регрессия?</h2></div>
+      <p>Представь две версии сервиса. У A каждый запрос занимает 10 ms. У B большинство запросов быстрее, но иногда появляется большая задержка:</p>
+      <div class="table-wrap"><table><caption>Синтетическая модель. Это заданные распределения, а не измеренная выборка.</caption><thead><tr><th>Версия</th><th>Время запроса T</th><th>Вероятность</th></tr></thead><tbody><tr><td>A</td><td>10 ms</td><td>100%</td></tr><tr><td>B</td><td>9 ms</td><td>99%</td></tr><tr><td>B</td><td>1000 ms</td><td>1%</td></tr></tbody></table></div>
+      <p style="margin-top:20px">Прежде чем читать дальше, ответь: ты бы выкатил B, если отвечаешь за суммарное время последовательной обработки? А если оцениваешь время запроса в середине распределения?</p>
+      <details><summary>Сравнить свой ответ с расчётом</summary><p>У A mean и median равны 10 ms. У B median равна 9 ms, а mean равен 0.99 × 9 + 0.01 × 1000 = <strong>18.91 ms</strong>. По median B лучше; по mean A лучше. Для решения о rollout нужны заранее выбранные цели и ограничения — например, ускорение median вместе с допустимой долей задержек.</p></details>
+      <p>Здесь нет противоречия. Вопрос «какая версия быстрее?» ещё недостаточно точен.</p>
+    </section>
+
+    <section id="target">
+      <div class="section-head"><span class="number">02</span><h2>Величина и способ её оценить</h2></div>
+      <p><a href="../reference/glossary.html#estimand">Estimand</a> — характеристика интересующего нас распределения. <a href="../reference/glossary.html#estimator">Estimator</a> — правило вычисления её оценки по sample. Конкретное получившееся число — estimate.</p>
+      <div class="formula" aria-label="Примеры estimands">\[\begin{aligned}\operatorname{Mean}:\quad\mu(F)&amp;=\mathbb E_F[T],\\ \operatorname{Median}:\quad m(F)&amp;=\inf\{t:F(t)\ge0.5\}.\end{aligned}\]<small>F(t) = P(T ≤ t). Предполагаем существование конечного mean, когда его используем.</small></div>
+      <p>Например, sample mean оценивает population mean. Sample median обычно оценивает population median. Даже если оба числа называют «средним временем», это разные характеристики.</p>
+      <div class="note"><p><strong>Правило курса.</strong> Когда сравниваем точность двух estimators, сначала фиксируем общий estimand. Когда сравниваем mean с median, отдельно обсуждаем, какую задачу решает каждая величина.</p></div>
+      <p class="source">Refresh определений location statistics: <a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda351.htm">NIST: Measures of Location</a>. Для дискретного распределения population median здесь определена как lower 0.5-quantile; sample median при чётном n в эксперименте — среднее двух центральных значений.</p>
+      <h3>Три разных инженерных вопроса</h3>
+      <div class="table-wrap"><table><thead><tr><th>Вопрос</th><th>Estimand</th></tr></thead><tbody><tr><td>Каково ожидаемое суммарное время последовательной обработки?</td><td>Population mean E[T]</td></tr><tr><td>Где середина распределения времени запроса?</td><td>Population median</td></tr><tr><td>Какова доля запросов дольше 100 ms?</td><td>P(T &gt; 100 ms)</td></tr></tbody></table></div>
+      <p class="source">«Середина» не описывает worst case или всех пользователей. Доля нарушений порога — самостоятельный estimand, который median не заменяет.</p>
+    </section>
+
+    <section id="experiment">
+      <div class="section-head"><span class="number">03</span><h2>Управляй редкими задержками</h2></div>
+      <p>Перед каждым изменением предскажи результат. Найди частоту задержек, при которой B начинает проигрывать по mean, хотя его median остаётся лучше.</p>
+      <div class="lab" data-latency-lab>
+        <p class="small-label">Лаборатория / точная модель и один sample</p>
+        <div class="lab-controls">
+          <div class="control"><label for="frequency">Частота редкой задержки ε <output id="frequency-output" for="frequency">1%</output></label><input id="frequency" type="range" min="0" max="10" step="0.1" value="1"></div>
+          <div class="control"><label for="slow">Длительность редкой задержки <output id="slow-output" for="slow">1000 ms</output></label><input id="slow" type="range" min="100" max="10000" step="100" value="1000"></div>
+          <div class="control"><label for="sample-size">Размер sample B <output id="size-output" for="sample-size">1000</output></label><input id="sample-size" type="range" min="20" max="2000" step="20" value="1000"></div>
+          <div class="control"><label for="seed">Seed повторяемого sample</label><input id="seed" type="number" min="0" max="4294967295" step="1" value="43" inputmode="numeric"></div>
+        </div>
+        <div class="chart-scroll" tabindex="0" role="region" aria-label="График распределения; на узком экране прокручивается горизонтально"><svg class="chart" viewBox="0 0 760 224" role="img" aria-labelledby="chart-title chart-desc"><title id="chart-title">Заданные распределения времени запроса</title><desc id="chart-desc">A всегда 10 ms; B с вероятностью 99% — 9 ms, с вероятностью 1% — 1000 ms.</desc><g data-chart-layer></g><text x="380" y="222" text-anchor="middle">Время, ms · логарифмическая шкала · площадь круга ∝ вероятности</text></svg></div>
+        <p class="mobile-hint">График можно прокручивать по горизонтали →</p>
+        <div class="legend"><span>A · контроль</span><span>B · изменение</span></div>
+        <div class="table-wrap"><table><caption>Столбец «модель» известен только потому, что мы задали распределение сами.</caption><thead><tr><th>Характеристика</th><th>A · модель</th><th>B · модель</th><th>B · sample</th></tr></thead><tbody><tr><td>Mean</td><td>10 ms</td><td id="model-mean">18.91 ms</td><td id="sample-mean">—</td></tr><tr><td>Median</td><td>10 ms</td><td id="model-median">9 ms</td><td id="sample-median">—</td></tr><tr><td>P(T &gt; 100 ms)</td><td>0%</td><td id="model-breach">1%</td><td id="sample-breach">—</td></tr></tbody></table></div>
+        <p id="lab-verdict" class="status result" aria-live="polite"></p>
+        <div class="actions"><button class="btn" type="button" data-new-sample>Другой sample</button><button class="btn subtle" type="button" data-reset-lab>Сбросить параметры</button></div>
+        <p id="lab-status" class="status" aria-live="polite">Включи JavaScript для расчёта sample.</p>
+      </div>
+      <ol>
+        <li>Оставь задержку 1000 ms. Сравни ε = 0.1% и ε = 1%. Median не меняется; mean меняет победителя. Почему?</li>
+        <li>При ε = 1% установи n = 20. Нажми «Другой sample» несколько раз. Отсутствие задержки в sample доказывает ли её отсутствие в распределении?</li>
+        <li>Измени длительность задержки при фиксированном ε. Какая из трёх характеристик отражает тяжесть задержки, какая — только факт пересечения порога?</li>
+      </ol>
+      <details><summary>Разбор экспериментальных наблюдений</summary><p>При 0.1% mean B равен 9.991 ms; при 1% — 18.91 ms. Median B равна 9 ms в обоих случаях. При iid sampling вероятность не увидеть ни одной редкой задержки в 20 запросах равна 0.99<sup>20</sup> ≈ 81.8%: маленький sample часто выглядит благополучно.</p><p>Mean отражает и частоту, и величину задержек. P(T &gt; 100) отражает только пересечение заданного порога; событие в 1000 ms и событие в 10000 ms дают одинаковый вклад в эту долю. У median другая задача — показать середину распределения.</p></details>
+      <p class="source">Модель, исходные числа и PRNG — собственная учебная конструкция. Для одного параметра выбранной модели n независимых запросов генерируются одинаково распределённо; реальные benchmarks могут иметь dependence и drift. Размер n влияет на sample, но не на истинные характеристики заданной модели.</p>
+    </section>
+
+    <section id="proof">
+      <div class="section-head"><span class="number">04</span><h2>Два коротких доказательства</h2></div>
+      <h3>Почему для суммарного времени нужен mean</h3>
+      <p>Пусть S<sub>N</sub> = T<sub>1</sub> + ⋯ + T<sub>N</sub> — время последовательной обработки N запросов без перекрытия. Если у каждого T<sub>i</sub> один и тот же конечный mean μ, то по линейности expectation:</p>
+      <div class="formula">\[\mathbb E[S_N]=\sum_{i=1}^{N}\mathbb E[T_i]=N\mu.\]</div>
+      <p>Independence для этого равенства не нужна. Для миллиона запросов в нашей модели ожидаемое время у A — 10000 секунд, у B — 18910 секунд. Подставить median вместо μ в это равенство нельзя.</p>
+      <div class="note warning"><p>Это расчёт expected total последовательного service time. Для wall-clock времени при concurrency, queueing и changing load нужна отдельная модель системы. Mean отдельного запроса сам по себе не определяет throughput.</p></div>
+      <h3>Где проходит граница «B быстрее по mean»</h3>
+      <p>У B быстрый запрос занимает 9 ms, редкий — M ms. При M &gt; 10:</p>
+      <div class="formula">\[\begin{aligned}\mathbb E[T_B]&amp;=(1-\varepsilon)\cdot9+\varepsilon M=9+\varepsilon(M-9),\\ \mathbb E[T_B]&lt;10&amp;\iff\varepsilon&lt;\frac{1}{M-9}.\end{aligned}\]</div>
+      <p>При M = 1000 граница равна 1/991 ≈ 0.1009%. Это точное следствие выбранной модели. До границы выигрывает B по mean, после — A. При ε &lt; 50% median B по-прежнему равна 9 ms.</p>
+      <p>Теперь эффект изменения параметров в эксперименте объясняется формулой. Наблюдение в одном sample само по себе такой гарантии не даёт.</p>
+    </section>
+
+    <section id="robustness">
+      <h2>Где здесь начинается robustness</h2>
+      <p>Возьмём sample (9, 10, 10, 10, 11) и заменим последнее значение на M. Получим:</p>
+      <div class="formula">\[\begin{aligned}\operatorname{Sample\ mean}&amp;=\frac{39+M}{5},\\ \operatorname{Sample\ median}&amp;=10\quad(M\ge10).\end{aligned}\]</div>
+      <p>Sample mean можно увести сколь угодно далеко одной заменой, а sample median в этом примере остаётся на месте. Но чтобы назвать это «ошибкой mean», нужно сказать, что именно произошло.</p>
+      <div class="grid"><div class="card"><h3>Ошибка измерения</h3><p>Число M не относится к интересующему процессу. Цель — характеристика clean distribution. Сильная чувствительность к замене мешает оценить эту цель.</p></div><div class="card"><h3>Настоящая задержка</h3><p>Число M — часть поведения сервиса. Если цель — mean всей latency distribution, скрыть его вклад заменой на median означает сменить вопрос.</p></div></div>
+      <p class="source">Формализация через contamination model и breakdown point будет отдельной темой. Современные robust mean estimators могут сохранять целью именно mean при явно заданных условиях: <a href="https://arxiv.org/abs/1812.03523">Minsker, Uniform bounds for robust mean estimators</a>.</p>
+      <details><summary>Nonparametric и robust — разные свойства</summary><p>Nonparametric подход не ограничивает неизвестное распределение заранее выбранным семейством с конечным числом параметров. Robustness описывает чувствительность процедуры к определённым отклонениям и загрязнению. Отсутствие normality assumption не даёт robustness автоматически.</p><p>Например, Harrell–Davis оценивает quantiles взвешенной суммой всех order statistics. При положительном весе максимума одно значение M → ∞ может увести даже оценку median в бесконечность. Введение и §1 <a href="https://arxiv.org/pdf/2111.11776">статьи Akinshin о trimmed Harrell–Davis</a> — primary reading к этому примеру; формулы весов разберём в отдельном уроке.</p></details>
+    </section>
+
+    <section id="practice">
+      <div class="section-head"><span class="number">05</span><h2>Проверь выбор величины</h2></div>
+      <p>Сначала ответь без подсказки. После проверки прочитай объяснение, даже если угадал.</p>
+      <form class="quiz" data-answer="b" data-explaina="Difference of medians характеризует сдвиг середины, но не ожидаемую сумму времён." data-explainb="Для одинакового числа последовательных запросов разница expected totals равна N · (μB − μA). Значит, нужен difference of population means." data-explainc="Mode показывает наиболее вероятное время, а не expectation суммы.">
+        <fieldset><legend>1. Нужно сравнить ожидаемое суммарное время обработки одинакового числа последовательных запросов. Какой estimand выбрать?</legend>
+          <label><input type="radio" name="q1" value="a">Разница population medians</label>
+          <label><input type="radio" name="q1" value="b">Разница population means</label>
+          <label><input type="radio" name="q1" value="c">Разница population modes</label>
+        </fieldset><button class="btn" type="submit">Проверить ответ</button><div class="quiz-feedback" role="status" hidden></div>
+      </form>
+      <form class="quiz" data-answer="c" data-explaina="При асимметрии mean и median обычно различаются. В модели B это 18.91 ms и 9 ms." data-explainb="Uncertainty — отдельный вопрос. Замена mean на median прежде всего меняет оцениваемую характеристику." data-explainc="Sample median оценивает population median. Это не просто более устойчивый способ оценить произвольный population mean.">
+        <fieldset><legend>2. В произвольном асимметричном распределении мы заменили sample mean на sample median. Что теперь оценивается?</legend>
+          <label><input type="radio" name="q2" value="a">Тот же estimand</label>
+          <label><input type="radio" name="q2" value="b">Та же uncertainty</label>
+          <label><input type="radio" name="q2" value="c">Другой population functional</label>
+        </fieldset><button class="btn" type="submit">Проверить ответ</button><div class="quiz-feedback" role="status" hidden></div>
+      </form>
+      <form class="quiz" data-answer="a" data-explaina="Нужно разбираться в происхождении числа и в target: измерительная ошибка и реальный tail требуют разных решений. Одна только величина задержки этого не определяет." data-explainb="Очень большое значение может быть реальным запросом. Его величина сама по себе не доказывает ошибку измерения." data-explainc="Редкость события не исключает его значимости для mean, затрат или SLO. Нужен разбор механизма и цели.">
+        <fieldset><legend>3. Что нужно исследовать, чтобы решить, является ли большая задержка measurement contamination?</legend>
+          <label><input type="radio" name="q3" value="a">Описание механизма измерения</label>
+          <label><input type="radio" name="q3" value="b">Большое значение latency</label>
+          <label><input type="radio" name="q3" value="c">Редкая встречаемость события</label>
+        </fieldset><button class="btn" type="submit">Проверить ответ</button><div class="quiz-feedback" role="status" hidden></div>
+      </form>
+      <p class="status" data-quiz-progress aria-live="polite"></p>
+      <details><summary>Ответы без JavaScript / для печати</summary><p>1: разница population means, поскольку expectation суммы аддитивна. 2: другой population functional, поскольку median и mean — разные цели. 3: описание механизма измерения; одно только большое или редкое значение не доказывает загрязнение.</p></details>
+    </section>
+
+    <section id="python">
+      <h2>Повтори расчёт в Python</h2>
+      <p>Пример работает на Python 3 без сторонних библиотек. В нём тот же deterministic PRNG, что в лаборатории: при одинаковых параметрах seed 43 даёт тот же sample.</p>
+      <pre><code>python3 examples/0001_estimand.py
+python3 examples/0001_estimand.py --epsilon 0.001 --slow 1000 --n 20
+python3 examples/0001_estimand.py --epsilon 0.01 --slow 1000 --n 20 --seed 44</code></pre>
+      <p class="source">Команды выполняются из корня курса. <a href="../examples/0001_estimand.py" download>Скачать Python-файл</a>. Сначала вычисли mean B вручную, затем сравни с выводом. Смена seed меняет sample, а не estimand.</p>
+    </section>
+
+    <section id="transfer">
+      <div class="section-head"><span class="number">06</span><h2>Перенеси на свою задачу</h2></div>
+      <p>Возьми знакомый benchmark или A/B experiment. В 3–5 предложениях запиши: какое решение нужно принять; что является единицей наблюдения; какой estimand нужен; почему соседняя метрика отвечает на другой вопрос.</p>
+      <label for="reflection" class="small-label">Твоё объяснение</label>
+      <textarea id="reflection" class="reflection" data-draft="transfer" placeholder="Решение: …&#10;Единица наблюдения: …&#10;Estimand: …&#10;Почему именно он: …"></textarea>
+      <p class="source" data-draft-status>Черновик попробует сохраниться только в этом браузере. На file:// хранение может быть недоступно; ответы автоматически никуда не отправляются.</p>
+      <details><summary>Критерии самопроверки</summary><ul><li>Решение конкретно: например, разрешить rollout при заданном ограничении на долю медленных запросов.</li><li>Единица наблюдения названа: запрос, пользователь или независимый benchmark run; это не всегда одно и то же.</li><li>Estimand записан как характеристика распределения, а не «применю Mann–Whitney».</li><li>Есть объяснение, почему mean, median или tail probability соответствует цели.</li></ul></details>
+      <p><strong>Пришли объяснение в чат.</strong> Можно также прислать результаты эксперимента или любой непонятный шаг доказательства — разберём его до следующего урока.</p>
+      <div class="completion"><p class="small-label">Критерий завершения</p><p>Ты можешь объяснить, почему в модели B меньше median и больше mean, и выбрать величину под новое инженерное решение.</p><div class="actions"><button class="btn" type="button" data-complete>Отметить урок завершённым</button><button class="btn subtle" type="button" data-print>Печать / PDF</button></div><p class="status" data-completion-status aria-live="polite">Локальная отметка не является проверкой знаний и не изменяет файлы прогресса.</p></div>
+      <p class="source"><strong>Повторение:</strong> через 1–3 дня без конспекта восстанови формулу 9 + ε(M − 9) и придумай пример расхождения mean и median. Через неделю снова сформулируй estimand для своей задачи. Напоминания автоматически не настроены.</p>
+    </section>
+
+    <section id="reading">
+      <h2>Чтение и следующий шаг</h2>
+      <p><strong>Основной первичный источник:</strong> <a href="https://arxiv.org/pdf/2111.11776">Akinshin, Trimmed Harrell–Davis quantile estimator</a>, введение и начало §1. Задача чтения: найти, почему estimator median может быть чувствителен к единственному outlier. Детали Beta weights сейчас можно пропустить.</p>
+      <p class="source">Для refresh: <a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda351.htm">NIST: Measures of Location</a>. Для будущего robust estimation именно mean: <a href="https://arxiv.org/abs/1812.03523">Minsker</a>. Все расчёты с версиями A/B в этом уроке — самостоятельно построенные примеры.</p>
+      <p>Далее — <a href="0002-quantiles-and-populations.html">урок 02: ECDF, quantile curves и состав successful requests</a>, адаптированный под твой рабочий кейс. Если prerequisites требуют напоминания, обсудим их в чате.</p>
+      <div class="actions"><a class="btn" href="../reference/decision-card.html">Памятка по estimand →</a><a class="btn subtle" href="../index.html#route">К маршруту курса</a></div>
+    </section>
+  </main>
+  <footer class="footer">Урок 0001 · <a href="../reference/glossary.html">Glossary</a> · <a href="../RESOURCES.md">Источники</a> · <a href="../index.html">Начало курса</a><br>Теория, практика и Python доступны локально. Для внешних источников нужен интернет.</footer>
+</div>
+</body>
+</html>

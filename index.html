@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Личный курс robust и nonparametric statistics: performance, A/B testing, isotonic regression и PCA.">
+  <title>Статистика для инженерных решений — учебный курс</title>
+  <link rel="stylesheet" href="assets/course.css">
+</head>
+<body>
+<a class="skip-link" href="#main">К содержанию</a>
+<div class="shell">
+  <header class="topbar"><a href="index.html">Statistics / Learning workspace</a><nav aria-label="Навигация"><a href="reference/glossary.html">Glossary</a><a href="reference/decision-card.html">Памятка</a></nav></header>
+  <main id="main">
+    <div class="hero">
+      <p class="eyebrow">Личный курс · 09 / MAD и QAD</p>
+      <h1>Статистика для<br><span class="accent">инженерных решений.</span></h1>
+      <p class="lede">Robust и nonparametric методы: от смысла метрики до сравнения групп, аппроксимации и устойчивых оценок. С доказательствами, контрпримерами и Python.</p>
+      <div class="meta"><span>20–30 минут на урок</span><span>Русский + English terminology</span><span>Работает без интернета</span></div>
+    </div>
+    <div class="grid">
+      <article class="card"><span class="tag">Новый урок · 25–30 минут</span><h2 style="margin-top:16px">09. Насколько широко разбросаны данные?</h2><p>MAD и QAD: радиус отклонений, вывод normal calibration, состоятельность с оценённым центром и нулевой scale при ties.</p><a class="btn primary" href="lessons/0009-mad-qad.html">Открыть урок 09 →</a><p class="source"><a href="lessons/0008-trimmed-harrell-davis.html">Урок 08: Trimmed Harrell–Davis</a><br><a href="lessons/0007-harrell-davis.html">Урок 07: Harrell–Davis</a><br><a href="lessons/0006-quantile-estimators.html">Урок 06: quantile estimators</a><br><a href="lessons/0005-influence-and-efficiency.html">Урок 05: чувствительность и точность</a><br><a href="lessons/0004-contamination-and-breakdown.html">Урок 04: contamination и breakdown</a><br><a href="lessons/0003-sampling-variability.html">Урок 03: выборочная изменчивость</a><br><a href="lessons/0002-quantiles-and-populations.html">Урок 02: хвост какого распределения?</a><br><a href="lessons/0001-estimand-before-estimator.html">Урок 01: что значит «быстрее»?</a></p></article>
+      <aside class="card"><p class="eyebrow">Как учиться</p><h3>Сначала предположение.<br>Затем эксперимент.</h3><p>Сформулируй ответ до изменения параметров, проверь его в браузере и объясни результат своими словами. После урока пришли объяснение в чат — оно определит следующий шаг.</p><p class="source">Создание материала не означает усвоение. Локальная отметка завершения служит только тебе.</p></aside>
+    </div>
+    <section id="route">
+      <div class="section-head"><span class="number">→</span><h2>Маршрут курса</h2></div>
+      <p class="narrow">Основа — публикации Andrey Akinshin, дополненные источниками по inference и approximation. Готовы первые девять уроков. Для статистических идей используем примеры из разных областей. Главный рабочий кейс — quantile curves, success/error и time-limit hits распределённой БД. <a href="reference/distributed-query-tail.html">Постановка задачи</a>.</p>
+      <ol class="route-list">
+        <li><span class="route-num">01–05</span><div><strong>Что оцениваем и от чего защищаемся</strong><p>Estimand, ECDF, sampling variability, contamination, breakdown point, influence function и efficiency.</p></div></li>
+        <li><span class="route-num">06–10</span><div><strong>Quantiles и robust scale</strong><p>Hyndman–Fan, Harrell–Davis, trimmed Harrell–Davis, MAD/QAD, Sn/Qn и finite-sample corrections.</p></div></li>
+        <li><span class="route-num">11–17</span><div><strong>A/B testing и сравнение групп</strong><p>Shift/ratio curves, query mix, paired design, rank tests, permutation, confidence intervals и bootstrap. Latency вместе с error/limit-hit rates и полнотой ответа.</p></div></li>
+        <li><span class="route-num">18–23</span><div><strong>Аппроксимация и структура данных</strong><p>Loss functions, isotonic regression, PAVA и его доказательство; PCA через SVD, reconstruction error и outliers.</p></div></li>
+        <li><span class="route-num">24–27</span><div><strong>Зависимость и современные гарантии</strong><p>Time structure, weighted quantiles, median-of-means, Catoni-type estimators и итоговый анализ.</p></div></li>
+      </ol>
+      <p class="source">Isotonic regression и PCA входят в программу. Их обычные версии не получают robustness автоматически. <a href="COURSE.md">Подробный план</a> · <a href="RESOURCES.md">Источники и открытые вопросы</a></p>
+    </section>
+    <section class="grid" aria-label="Материалы курса">
+      <article class="card"><p class="eyebrow">Под рукой</p><h3><a href="reference/glossary.html">Glossary</a></h3><p>Согласованные определения: estimand, estimator, quantile, robustness и другие термины. Будет расти вместе с курсом.</p></article>
+      <article class="card"><p class="eyebrow">Для печати</p><h3><a href="reference/scale-card.html">Какой именно разброс?</a></h3><p>MAD/QAD, normal calibration, условия сходимости и два способа разрушить scale.</p><p class="source"><a href="reference/trimmed-hd-card.html">Памятка 08: Trimmed HD</a><br><a href="reference/harrell-davis-card.html">Памятка 07: Harrell–Davis</a><br><a href="reference/quantile-card.html">Памятка 06: quantile estimators</a><br><a href="reference/influence-card.html">Памятка 05: IF и MSE</a><br><a href="reference/breakdown-card.html">Памятка 04: contamination и breakdown</a><br><a href="reference/sampling-card.html">Памятка 03: выборочная изменчивость</a><br><a href="reference/decision-card.html">Памятка 01: как выбрать estimand</a></p></article>
+    </section>
+    <p class="source">Согласованная цель: <a href="MISSION.md">MISSION.md</a>. Python-пример первого урока: <a href="examples/0001_estimand.py" download>скачать</a>. Для чтения и интерактивных заданий сервер и установки не нужны; сохраняй структуру каталогов при переносе курса.</p>
+  </main>
+  <footer class="footer">Сначала определить вопрос. Затем выбрать метод. · Учебный workspace · 2026</footer>
+</div>
+</body>
+</html>
